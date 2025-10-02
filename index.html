@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Judge Marking Panel - Fest Management Software</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --success-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            --danger-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(to bottom, #f0f2f5, #ffffff);
+            min-height: 100vh;
+        }
+        .header {
+            background: var(--primary-gradient);
+            color: white;
+            padding: 1rem 2rem;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        }
+        .login-section, .marking-section {
+            background: white;
+            border-radius: 15px;
+            padding: 2rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            max-width: 500px;
+            margin: 2rem auto;
+        }
+        .table-section {
+            background: white;
+            border-radius: 15px;
+            padding: 2rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            margin: 2rem auto;
+            max-width: 1200px;
+        }
+        .table {
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+        }
+        .table thead th {
+            background: var(--primary-gradient);
+            color: white;
+            border: none;
+            font-weight: 600;
+        }
+        .table tbody tr:hover {
+            background: rgba(102, 126, 234, 0.05);
+        }
+        .btn {
+            border-radius: 25px;
+            padding: 0.5rem 1.5rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+        .form-control, .form-select {
+            border-radius: 10px;
+            border: 2px solid #e9ecef;
+            transition: border-color 0.3s ease;
+        }
+        .form-control:focus, .form-select:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+        }
+        .error-message {
+            color: #dc3545;
+            font-size: 0.875rem;
+            margin-top: 0.25rem;
+        }
+        .success-message {
+            color: #28a745;
+            font-size: 0.875rem;
+            margin-top: 0.25rem;
+        }
+        .toast-container {
+            z-index: 1055;
+        }
+        .loading {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+        @media (max-width: 768px) {
+            .login-section, .marking-section, .table-section {
+                margin: 1rem;
+                padding: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Login Section -->
+    <div id="loginSection" class="login-section">
+        <h2 class="text-center mb-4 fw-bold">Judge Login</h2>
+        <form id="loginForm">
+            <div class="mb-3">
+                <label for="password" class="form-label">Password</label>
+                <input type="password" class="form-control" id="password" inputmode="numeric" required>
+                <div id="passError" class="error-message" style="display: none;"></div>
+            </div>
+            <button type="submit" class="btn btn-primary w-100">Login</button>
+        </form>
+        <div id="loginError" class="alert alert-danger mt-3" style="display: none;"></div>
+    </div>
+
+    <!-- Marking Section (Hidden Initially) -->
+    <div id="markingSection" class="d-none">
+        <header class="header">
+            <div class="d-flex justify-content-between align-items-center">
+                <h1 class="mb-0 fw-bold text-white">Marking Panel</h1>
+                <button class="btn btn-outline-light btn-sm" onclick="logout()">Logout</button>
+            </div>
+        </header>
+        <div class="table-section">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2 class="fw-bold text-dark">Marking for <span id="programmeInfo"></span></h2>
+            </div>
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <input type="text" class="form-control" id="marksSearch" placeholder="Search code letters..." onkeyup="filterMarksTable()">
+                </div>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover" id="marksTable">
+                    <thead>
+                        <tr>
+                            <th>Code Letter</th>
+                            <th>Marks</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="marksTbody">
+                        <tr>
+                            <td><input type="text" class="form-control code-input" maxlength="1" placeholder="A" style="text-transform: uppercase;" oninput="validateCode(this); saveDraft();"></td>
+                            <td><input type="number" class="form-control marks-input" min="0" placeholder="0" oninput="saveDraft();" inputmode="numeric"></td>
+                            <td><button class="btn btn-danger btn-sm" onclick="removeRow(this)">Delete</button></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <button class="btn btn-success mt-3" onclick="addRow()">Add Row</button>
+            <button class="btn btn-primary mt-3 ms-2" onclick="submitMarks()">Submit Marks</button>
+            <div id="submissionError" class="alert alert-danger mt-3" style="display: none;"></div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast-container position-fixed top-0 end-0 p-3">
+        <div id="liveToast" class="toast align-items-center text-white bg-success border-0" role="alert">
+            <div class="d-flex">
+                <div class="toast-body" id="toastBody"></div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-app.js";
+        import { getFirestore, collection, getDocs, doc, getDoc, updateDoc, addDoc, query, where } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyC0eal8jWB6ksEpFCEYMRIOhzpAROwlXns",
+            authDomain: "festhub-d7138.firebaseapp.com",
+            projectId: "festhub-d7138",
+            storageBucket: "festhub-d7138.firebasestorage.app",
+            messagingSenderId: "396565568701",
+            appId: "1:396565568701:web:c2c4001be99eef231a6bd4"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        let currentJudge = null;
+        let draftMarks = JSON.parse(localStorage.getItem('judgeDraft') || '[]');
+
+        // Global functions for oninput events
+        window.validateCode = function(input) {
+            const value = input.value.toUpperCase().trim();
+            input.value = value;
+            const errorDiv = input.parentElement.querySelector('.error-message');
+            if (value === '') {
+                if (errorDiv) errorDiv.textContent = 'Code letter is required.';
+                errorDiv.style.display = 'block';
+                input.classList.add('is-invalid');
+            } else {
+                if (errorDiv) errorDiv.style.display = 'none';
+                input.classList.remove('is-invalid');
+            }
+            saveDraft();
+        };
+
+        window.saveDraft = function() {
+            const entries = [];
+            document.querySelectorAll('#marksTbody tr').forEach(tr => {
+                const code = tr.querySelector('.code-input').value.toUpperCase().trim();
+                const marks = tr.querySelector('.marks-input').value;
+                if (code || marks) {
+                    entries.push({ codeLetter: code, marks: parseInt(marks) || 0 });
+                }
+            });
+            localStorage.setItem('judgeDraft', JSON.stringify(entries));
+        };
+
+        function createErrorDiv(input) {
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error-message';
+            input.parentElement.appendChild(errorDiv);
+            return errorDiv;
+        }
+
+        function loadDraft() {
+            if (draftMarks.length > 0) {
+                draftMarks.forEach(entry => addRow(entry.codeLetter, entry.marks));
+            }
+        }
+
+        function clearDraft() {
+            localStorage.removeItem('judgeDraft');
+            draftMarks = [];
+        }
+
+        // Utils
+        function showToast(message, type = 'success') {
+            // Check if Bootstrap is loaded
+            if (typeof bootstrap === 'undefined') {
+                alert(message); // Fallback to alert if Bootstrap not ready
+                return;
+            }
+            const toastEl = document.getElementById('liveToast');
+            const toastBody = document.getElementById('toastBody');
+            if (toastEl && toastBody) {
+                toastBody.textContent = message;
+                toastEl.className = `toast align-items-center text-white bg-${type} border-0`;
+                const toast = new bootstrap.Toast(toastEl);
+                toast.show();
+            }
+        }
+
+        function showError(elementId, message) {
+            const element = document.getElementById(elementId);
+            if (element) {
+                element.style.display = 'block';
+                element.textContent = message;
+            }
+        }
+
+        function hideError(elementId) {
+            const element = document.getElementById(elementId);
+            if (element) element.style.display = 'none';
+        }
+
+        // Login (Password Only)
+        document.addEventListener('DOMContentLoaded', () => {
+            const loginForm = document.getElementById('loginForm');
+            if (loginForm) {
+                loginForm.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    hideError('passError');
+                    hideError('loginError');
+                    const password = document.getElementById('password').value.trim();
+                    if (!password) {
+                        showError('loginError', 'Please enter your password.');
+                        return;
+                    }
+                    try {
+                        const q = query(collection(db, 'judges'), where('status', '==', 'saved'));
+                        const snapshot = await getDocs(q);
+                        let matchedJudge = null;
+                        snapshot.forEach(doc => {
+                            const judgeData = doc.data();
+                            if (judgeData.password === password) {
+                                matchedJudge = { id: doc.id, ...judgeData };
+                            }
+                        });
+                        if (!matchedJudge) {
+                            showError('loginError', 'Invalid password or status.');
+                            return;
+                        }
+                        currentJudge = matchedJudge;
+                        document.getElementById('programmeInfo').textContent = `${currentJudge.category} - ${currentJudge.programme}`;
+                        document.getElementById('loginSection').classList.add('d-none');
+                        document.getElementById('markingSection').classList.remove('d-none');
+                        loadDraft();
+                        renderMarksTable();
+                        showToast('Login successful!');
+                    } catch (error) {
+                        showError('loginError', 'Login failed. Please try again.');
+                        console.error('Login error:', error);
+                    }
+                });
+            }
+        });
+
+        window.logout = function() {
+            currentJudge = null;
+            clearDraft();
+            document.getElementById('markingSection').classList.add('d-none');
+            document.getElementById('loginSection').classList.remove('d-none');
+            document.getElementById('loginForm').reset();
+            hideError('loginError');
+            showToast('Logged out successfully.');
+        };
+
+        // Table Management
+        function addRow(code = '', marks = 0) {
+            const tbody = document.getElementById('marksTbody');
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>
+                    <input type="text" class="form-control code-input" maxlength="1" value="${code}" placeholder="A" style="text-transform: uppercase;" oninput="validateCode(this); saveDraft();">
+                    <div class="error-message"></div>
+                </td>
+                <td>
+                    <input type="number" class="form-control marks-input" min="0" value="${marks}" placeholder="0" oninput="validateMarks(this); saveDraft();">
+                    <div class="error-message"></div>
+                </td>
+                <td><button class="btn btn-danger btn-sm" onclick="removeRow(this)">Delete</button></td>
+            `;
+            tbody.appendChild(tr);
+        }
+
+        window.addRow = addRow;
+
+        window.removeRow = function(btn) {
+            btn.closest('tr').remove();
+            saveDraft();
+        };
+
+        window.validateMarks = function(input) {
+            const value = parseInt(input.value) || 0;
+            const errorDiv = input.parentElement.querySelector('.error-message');
+            if (isNaN(value) || value < 0) {
+                if (errorDiv) errorDiv.textContent = 'Marks must be a valid number >= 0.';
+                errorDiv.style.display = 'block';
+                input.classList.add('is-invalid');
+            } else {
+                if (errorDiv) errorDiv.style.display = 'none';
+                input.classList.remove('is-invalid');
+            }
+            saveDraft();
+        };
+
+        window.renderMarksTable = function() {
+            const tbody = document.getElementById('marksTbody');
+            tbody.innerHTML = '';
+            if (draftMarks.length === 0) {
+                addRow();
+            } else {
+                draftMarks.forEach(entry => addRow(entry.codeLetter, entry.marks));
+            }
+        };
+
+        window.filterMarksTable = function() {
+            const search = document.getElementById('marksSearch').value.toUpperCase();
+            const rows = document.querySelectorAll('#marksTbody tr');
+            rows.forEach(row => {
+                const code = row.querySelector('.code-input').value.toUpperCase();
+                row.style.display = code.includes(search) ? '' : 'none';
+            });
+        };
+
+        // Submission
+        window.submitMarks = async function() {
+            const entries = [];
+            let hasError = false;
+            hideError('submissionError');
+            document.querySelectorAll('#marksTbody tr').forEach(tr => {
+                const codeInput = tr.querySelector('.code-input');
+                const marksInput = tr.querySelector('.marks-input');
+                const code = codeInput.value.toUpperCase().trim();
+                const marks = parseInt(marksInput.value) || 0;
+                if (code) {
+                    if (code === '') {
+                        showError('submissionError', 'Code letter cannot be empty.');
+                        hasError = true;
+                        return;
+                    }
+                    if (isNaN(marks) || marks < 0) {
+                        showError('submissionError', 'Marks must be a valid number >= 0.');
+                        hasError = true;
+                        return;
+                    }
+                    entries.push({ codeLetter: code, marks });
+                }
+            });
+            if (hasError || entries.length === 0) {
+                showError('submissionError', 'Please fix errors and add at least one valid entry.');
+                return;
+            }
+            try {
+                await addDoc(collection(db, 'marks'), {
+                    judgeId: currentJudge.id,
+                    programme: currentJudge.programme,
+                    category: currentJudge.category,
+                    entries: entries,
+                    submittedAt: new Date()
+                });
+                // Update judge status
+                await updateDoc(doc(db, 'judges', currentJudge.id), {
+                    status: 'submitted'
+                });
+                clearDraft();
+                showToast('Marks submitted successfully!');
+                logout(); // Redirect to login
+            } catch (error) {
+                showError('submissionError', 'Submission failed. Please try again.');
+                console.error('Submission error:', error);
+            }
+        };
+
+        // Initialize on DOM load
+        document.addEventListener('DOMContentLoaded', () => {
+            // Wait for Bootstrap to load before using it
+            setTimeout(() => {
+                const loginForm = document.getElementById('loginForm');
+                if (loginForm) {
+                    loginForm.addEventListener('submit', async (e) => {
+                        e.preventDefault();
+                        hideError('passError');
+                        hideError('loginError');
+                        const password = document.getElementById('password').value.trim();
+                        if (!password) {
+                            showError('loginError', 'Please enter your password.');
+                            return;
+                        }
+                        try {
+                            const q = query(collection(db, 'judges'), where('status', '==', 'saved'));
+                            const snapshot = await getDocs(q);
+                            let matchedJudge = null;
+                            snapshot.forEach(doc => {
+                                const judgeData = doc.data();
+                                if (judgeData.password === password) {
+                                    matchedJudge = { id: doc.id, ...judgeData };
+                                }
+                            });
+                            if (!matchedJudge) {
+                                showError('loginError', 'Invalid password or status.');
+                                return;
+                            }
+                            currentJudge = matchedJudge;
+                            document.getElementById('programmeInfo').textContent = `${currentJudge.category} - ${currentJudge.programme}`;
+                            document.getElementById('loginSection').classList.add('d-none');
+                            document.getElementById('markingSection').classList.remove('d-none');
+                            loadDraft();
+                            renderMarksTable();
+                            showToast('Login successful!');
+                        } catch (error) {
+                            showError('loginError', 'Login failed. Please try again.');
+                            console.error('Login error:', error);
+                        }
+                    });
+                }
+            }, 100); // Small delay to ensure Bootstrap is loaded
+        });
+    </script>
+    
+     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+  </body>
+  </html>
