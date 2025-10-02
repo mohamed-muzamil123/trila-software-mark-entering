@@ -106,7 +106,7 @@
         <form id="loginForm">
             <div class="mb-3">
                 <label for="password" class="form-label">Password</label>
-                <input type="password" class="form-control" id="password" required>
+                <input type="password" class="form-control" id="password" inputmode="numeric" required>
                 <div id="passError" class="error-message" style="display: none;"></div>
             </div>
             <button type="submit" class="btn btn-primary w-100">Login</button>
@@ -141,11 +141,6 @@
                         </tr>
                     </thead>
                     <tbody id="marksTbody">
-                        <tr>
-                            <td><input type="text" class="form-control code-input" maxlength="1" placeholder="A" style="text-transform: uppercase;" oninput="validateCode(this); saveDraft();"></td>
-                            <td><input type="number" class="form-control marks-input" min="0" placeholder="0" oninput="saveDraft();" inputmode="numeric"></td>
-                            <td><button class="btn btn-danger btn-sm" onclick="removeRow(this)">Delete</button></td>
-                        </tr>
                     </tbody>
                 </table>
             </div>
@@ -184,6 +179,31 @@
 
         let currentJudge = null;
         let draftMarks = JSON.parse(localStorage.getItem('judgeDraft') || '[]');
+
+        // Helper function to generate next sequential code letter
+        function getNextCodeLetter() {
+            const existingCodes = Array.from(document.querySelectorAll('.code-input'))
+                .map(input => input.value.toUpperCase().trim())
+                .filter(code => code !== '');
+            if (existingCodes.length === 0) {
+                return 'A';
+            }
+            // Find the highest letter
+            let maxCharCode = 64; // Before 'A'
+            existingCodes.forEach(code => {
+                if (code.length === 1 && code >= 'A' && code <= 'Z') {
+                    const charCode = code.charCodeAt(0);
+                    if (charCode > maxCharCode) {
+                        maxCharCode = charCode;
+                    }
+                }
+            });
+            const nextCharCode = maxCharCode + 1;
+            if (nextCharCode > 90) { // After 'Z'
+                return ''; // Or handle overflow as needed
+            }
+            return String.fromCharCode(nextCharCode);
+        }
 
         // Global functions for oninput events
         window.validateCode = function(input) {
@@ -314,7 +334,7 @@
         };
 
         // Table Management
-        function addRow(code = '', marks = 0) {
+        function addRow(code = '', marks = '') {
             const tbody = document.getElementById('marksTbody');
             const tr = document.createElement('tr');
             tr.innerHTML = `
@@ -323,7 +343,7 @@
                     <div class="error-message"></div>
                 </td>
                 <td>
-                    <input type="number" class="form-control marks-input" min="0" value="${marks}" placeholder="0" oninput="validateMarks(this); saveDraft();">
+                    <input type="number" class="form-control marks-input" min="0" value="${marks}" placeholder="" oninput="validateMarks(this); saveDraft();" inputmode="numeric">
                     <div class="error-message"></div>
                 </td>
                 <td><button class="btn btn-danger btn-sm" onclick="removeRow(this)">Delete</button></td>
@@ -331,7 +351,10 @@
             tbody.appendChild(tr);
         }
 
-        window.addRow = addRow;
+        window.addRow = function() {
+            const nextCode = getNextCodeLetter();
+            addRow(nextCode, '');
+        };
 
         window.removeRow = function(btn) {
             btn.closest('tr').remove();
@@ -356,7 +379,7 @@
             const tbody = document.getElementById('marksTbody');
             tbody.innerHTML = '';
             if (draftMarks.length === 0) {
-                addRow();
+                addRow('A', '');
             } else {
                 draftMarks.forEach(entry => addRow(entry.codeLetter, entry.marks));
             }
@@ -412,8 +435,9 @@
                     status: 'submitted'
                 });
                 clearDraft();
-                showToast('Marks submitted successfully!');
-                logout(); // Redirect to login
+                showToast('Marks submitted successfully! You will be logged out shortly.');
+                // Delay logout to allow user to see the success message
+                setTimeout(logout, 2000);
             } catch (error) {
                 showError('submissionError', 'Submission failed. Please try again.');
                 console.error('Submission error:', error);
@@ -468,5 +492,4 @@
     
      <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
   </body>
-
   </html>
